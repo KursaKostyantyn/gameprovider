@@ -11,9 +11,12 @@ import com.example.repository.GameRepository;
 import com.example.repository.GamingPlatformRepository;
 import com.example.services.api.AutoDataCreatingService;
 import com.example.utils.PasswordEncoderUtil;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.Startup;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.core.Response;
+import jakarta.transaction.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +29,22 @@ public class AutoDataCreatingServiceImpl implements AutoDataCreatingService {
     @Inject
     GamingPlatformRepository gamingPlatformRepository;
 
+    private void forceEagerInitialization(@Observes Startup startup){
+
+    }
+    @PostConstruct
+    public void createOnStartup(){
+        System.out.println("Application has started!");
+        Game game = gameRepository.findByName("Game 1");
+        System.out.println(game);
+        if (game==null){
+            create();
+        }
+    }
+
     @Override
-    public Response create() {
+    @Transactional
+    public void create() {
         gameRepository.persist(GameMapper.convertGameDtoToGame(new GameDto("Game 1")));
         gameRepository.persist(GameMapper.convertGameDtoToGame(new GameDto("Game 2")));
         GamingPlatform gamingPlatform = GamingPlatformMapper.convertGamingPlatformDtoToGamingPlatform(new GamingPlatformDto("Gaming Platform"));
@@ -37,7 +54,5 @@ public class AutoDataCreatingServiceImpl implements AutoDataCreatingService {
         gamingPlatform.setPassword(PasswordEncoderUtil.securePassword("admin"));
         gamingPlatform.setRole(Set.of(Role.ADMIN));
         gamingPlatformRepository.persist(gamingPlatform);
-
-        return Response.status(Response.Status.CREATED).build();
     }
 }

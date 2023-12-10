@@ -18,7 +18,7 @@ import jakarta.ws.rs.core.SecurityContext;
 @ApplicationScoped
 public class GamingPlatformServiceImpl implements GamingPlatformService {
 
-    private final long expirationTimeForAccessToken = 180000000;
+    private final long expirationTimeForAccessToken = 18000;
     private final String issuer = "https://example.com";
 
     @Inject
@@ -37,10 +37,10 @@ public class GamingPlatformServiceImpl implements GamingPlatformService {
     public Response gamingPlatformLogin(AuthDto authDto) throws Exception {
         GamingPlatform gamingPlatform = gamingPlatformRepository.findByName(authDto.getLogin());
 
-        if (PasswordEncoderUtil.validatePassword(gamingPlatform.getPassword(), authDto.getPassword())) {
+        if (gamingPlatform!=null && PasswordEncoderUtil.validatePassword(gamingPlatform.getPassword(), authDto.getPassword())) {
             return Response.ok(new AuthenticationResponse(TokenUtils.generateToken(gamingPlatform.getName(), gamingPlatform.getRole(), expirationTimeForAccessToken, issuer))).build();
         }
-        return Response.status(Response.Status.FORBIDDEN).build();
+        return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid username or password").build();
     }
 
     @Override
@@ -48,6 +48,9 @@ public class GamingPlatformServiceImpl implements GamingPlatformService {
         JWTCallerPrincipal jwtCallerPrincipal = (JWTCallerPrincipal) securityContext.getUserPrincipal();
         String gamingPlatformName = jwtCallerPrincipal.getName();
         GamingPlatform gamingPlatform = gamingPlatformRepository.findByName(gamingPlatformName);
+        if (gamingPlatform==null){
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
         if (!checkAllowedGames(gameId, gamingPlatform)) {
             return Response.status(Response.Status.FORBIDDEN).entity("This game is not allowed").build();
         }
